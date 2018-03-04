@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 import ccxt
 import api_keys
 import logging
@@ -32,7 +32,7 @@ logger.debug('Exchange API URL: ' + exchange.urls['api'])
 
 # Check for bad exchange API keys early
 try:
-    json.dumps(exchange.fetch_balance())
+    exchange.fetch_balance()
 # Handle bad keys
 except ccxt.base.errors.AuthenticationError as e:
     raise InvalidUsage(str(e), status_code=403)
@@ -83,11 +83,37 @@ def get_closed_orders(symbol):
 # Place new order
 @app.route('/order', methods=["POST"])
 def make_order():
-    symbol = request.args.get('symbol')
-    side = request.args.get('side')
-    order_type = request.args.get('type')
-    amount = request.args.get('amount')
-    price = request.args.get('price')
+    data = request.get_json()
+
+    if data.get('side'):
+        symbol = data['symbol']
+        logger.debug("   Symbol: " + symbol)
+    else:
+        raise InvalidUsage('Missing symbol parameter', status_code=400)
+
+    if data.get('side'):
+        side = data['side']
+        logger.debug("   Side: " + side)
+    else:
+        raise InvalidUsage('Missing side parameter', status_code=400)
+
+    if data.get('type'):
+        order_type = data['type']
+        logger.debug("   Order type: " + order_type)
+    else:
+        raise InvalidUsage('Missing type parameter', status_code=400)
+
+    if data.get('amount'):
+        amount = data['amount']
+        logger.debug("   Amount: " + amount)
+    else:
+        raise InvalidUsage('Missing price parameter', status_code=400)
+
+    if data.get('price'):
+        price = data['price']
+        logger.debug("   Price: " + price)
+    else:
+        price = None
 
     if order_type == "market":
         if side == "buy":
@@ -97,6 +123,9 @@ def make_order():
         else:
             raise InvalidUsage('Invalid order side', status_code=400)
     elif order_type == "limit":
+        if not data.get('price'):
+            raise InvalidUsage('Missing price parameter', status_code=400)
+
         if side == "buy":
             return json.dumps(exchange.create_limit_buy_order(symbol, amount, price))
         elif side == "sell":
@@ -110,7 +139,6 @@ def make_order():
 @app.route('/cancel/<order_id>', methods=["POST"])
 def cancel_order(order_id):
     return json.dumps(exchange.cancel_order(order_id))
-
 
 
 @app.errorhandler(InvalidUsage)
