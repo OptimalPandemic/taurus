@@ -53,7 +53,7 @@ def get_balance():
 # Fetch all orders
 @app.route('/orders', defaults={'symbol': None}, methods=["GET"])
 @app.route('/orders/<symbol>', methods=["GET"])
-def get__orders(symbol):
+def get_orders(symbol):
     if exchange.hasFetchOrders:
         return json.dumps(exchange.fetch_orders(symbol=symbol))
     else:
@@ -73,7 +73,7 @@ def get_open_orders(symbol):
 # Fetch all closed orders
 @app.route('/orders/closed', defaults={'symbol': None}, methods=["GET"])
 @app.route('/orders/closed/<symbol>', methods=["GET"])
-def get_open_orders(symbol):
+def get_closed_orders(symbol):
     if exchange.hasFetchClosedOrders:
         return json.dumps(exchange.fetch_closed_orders(symbol=symbol))
     else:
