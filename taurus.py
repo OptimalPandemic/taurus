@@ -47,34 +47,37 @@ except ccxt.base.errors.AuthenticationError as e:
 # Authorize requests before any
 @app.before_request
 def authenticate_token():
-    auth_header = request.headers.get('Authorization')
-    if auth_header:
-        try:
-            auth_token = auth_header.split(" ")[1]
-        except IndexError:
-            response_obj = {
+    # Exclude the login route
+    if request.path != '/login':
+
+        auth_header = request.headers.get('Authorization')
+        if auth_header:
+            try:
+                auth_token = auth_header.split(" ")[1]
+            except IndexError:
+                response_obj = {
+                    'status': 'failure',
+                    'message': 'Bearer token malformed.'
+                }
+                return make_response(jsonify(response_obj)), 401
+        else:
+            auth_token = ''
+
+        if auth_token:
+            resp = decode_auth_token(auth_token)
+
+            # If token is invalid, return invalid response, otherwise do nothing and move on
+            if isinstance(resp, Response):
+                return resp
+        else:
+            response_object = {
                 'status': 'failure',
-                'message': 'Bearer token malformed.'
+                'message': 'Provide a valid Bearer token. If you don\'t have one, authenticate against /login first.'
             }
-            return make_response(jsonify(response_obj)), 401
-    else:
-        auth_token = ''
-
-    if auth_token:
-        resp = decode_auth_token(auth_token)
-
-        # If token is invalid, return invalid response, otherwise do nothing and move on
-        if isinstance(resp, Response):
-            return resp
-    else:
-        response_object = {
-            'status': 'failure',
-            'message': 'Provide a valid Bearer token. If you don\'t have one, authenticate against /login first.'
-        }
-        return make_response(jsonify(response_object)), 401
+            return make_response(jsonify(response_object)), 401
 
 
-@app.route('/login')
+@app.route('/login', methods=["POST"])
 def login():
     data = request.get_json()
     try:
