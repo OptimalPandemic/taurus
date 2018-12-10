@@ -8,7 +8,7 @@ import logging
 import json
 import requests
 from passlib.apps import custom_app_context as pwd_context
-from InvalidUsage import InvalidUsage
+from trader.InvalidUsage import InvalidUsage
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger('taurus')

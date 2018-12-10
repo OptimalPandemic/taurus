@@ -1,2 +1,19 @@
 # Taurus
-A cryptocurrency trading microservice for a deep learning trader. Does intelligent wrapping for CCXT on GDAX.
+A cryptocurrency trading platform using deep reinforcement learning.
+
+## Structure
+Taurus is based on several microservices in a monorepo:
+* The deep learning model that turns price data into trade decisions (/machinelearning)
+* The trading system that executes and tracks trades (/trader)
+* The data collection service that feeds data into the ML model (/collector)
+* The web application for user control and monitoring (/web)
+
+The microservices communicate via internal APIs in JSON. The current version only supports being run on a single server, so no key exchange occurs between APIs.
+
+
+## Usage
+TBD
+
+## Credits
+The reinforcement learning model for this project is based on a graduate paper from Zhengyao Jiang, Dixing Xu, and Jinjun Liang of Xi'an Jiaotong-Liverpool University in Suzhou, China.
+https://arxiv.org/abs/1706.10059
