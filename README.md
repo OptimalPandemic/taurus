@@ -3,17 +3,27 @@ A cryptocurrency trading platform using deep reinforcement learning.
 
 ## Structure
 Taurus is based on several microservices in a monorepo:
-* The deep learning model that turns price data into trade decisions (/machinelearning)
+* The deep learning model that turns price data into trade decisions (/navigator)
 * The trading system that executes and tracks trades (/trader)
 * The data collection service that feeds data into the ML model (/collector)
 * The web application for user control and monitoring (/web)
+* A RabbitMQ message broker for inter-service communication (/broker)
 
-The microservices communicate via internal APIs in JSON. The current version only supports being run on a single server, so no key exchange occurs between APIs.
+The microservices communicate via the broker using internal APIs in protocol buffers (https://github.com/protocolbuffers/protobuf). The current version only supports being run on a single server, so no key exchange occurs between APIs.
 
 
 ## Usage
 TBD
 
+## Under Development
+* API/messaging interfaces
+* Data collection logic
+* Trading logic
+* Machine learning model & training
+* Web interface
+
 ## Credits
 The reinforcement learning model for this project is based on a graduate paper from Zhengyao Jiang, Dixing Xu, and Jinjun Liang of Xi'an Jiaotong-Liverpool University in Suzhou, China.
 https://arxiv.org/abs/1706.10059
+
+This project uses the CCXT library (https://github.com/ccxt/ccxt) to interact with exchanges for data collection and trading.

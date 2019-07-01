@@ -106,3 +106,6 @@ venv.bak/
 .mypy_cache/
 
 /api_keys.py
+
+/web/node_modules
+/web/yarn.lock

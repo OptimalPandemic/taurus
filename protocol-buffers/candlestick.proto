@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package taurus;
+
+message Candlestick {
+    int64 timestamp = 1;
+    double open = 2;
+    double high = 3;
+    double low = 4;
+    double close = 5;
+    double volume = 6;
+    string symbol = 7;
+}
+
+message CandlestickSet {
+    repeated Candlestick candlesticks = 1;
+}
