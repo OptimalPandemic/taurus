@@ -1,24 +1,47 @@
 version: "3.2"
 services:
-  rabbitmq-server:
-    build: ./rabbitmq-server
+
+  db:
+    image: mysql:8.0
+    ports:
+      - "32000:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - ./db:/docker-entrypoint-initdb.d/:ro
 
   collector:
     build: ./collector
     depends_on:
-      - rabbitmq-server
+      - db
     tty: true
     ports:
-      - "8080:8080"
+      - "8081:50051"
     volumes:
       - './collector:/collector'
 
   navigator:
     build: ./navigator
     depends_on:
-      - rabbitmq-server
       - collector
     tty: true
     ports:
-      - "8080:8080"
-      -
+      - "8082:50051"
+
+  web:
+    build: ./web
+    tty: true
+    ports:
+      - "8083:50051"
+      - "8080:80"
+      - "8443:443"
+
+  trader:
+    build: ./trader
+    depends_on:
+      - collector
+      - navigator
+      - web
+    tty: true
+    ports:
+      - "8084:50051"
