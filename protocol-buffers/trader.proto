@@ -1,5 +1,5 @@
 syntax = "proto3";
-import "PATH/collector.proto";
+import "collector.proto";
 
 package taurus;
 

@@ -1,6 +1,6 @@
 syntax = "proto3";
-import "PATH/collector.proto";
-import "PATH/web.proto";
+import "collector.proto";
+import "web.proto";
 
 package taurus;
 
