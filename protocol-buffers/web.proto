@@ -1,0 +1,23 @@
+syntax = "proto3";
+import "PATH/trader.proto";
+import "PATH/collector.proto";
+
+package taurus;
+
+service Web {
+    rpc GetConstraints(ConstraintRequest) returns (ConstraintSet) {}
+    rpc InformTrade (Trade) returns (InformReply) {}
+    rpc InformCandlesticks (CandlestickSet) returns (InformReply) {}
+}
+
+message ConstraintRequest {
+    string message = 1;
+}
+
+message ConstraintSet {
+    repeated Constraint constraint = 1;
+}
+
+message InformReply {
+    string status = 1;
+}

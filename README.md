@@ -7,16 +7,15 @@ Taurus is based on several microservices in a monorepo:
 * The trading system that executes and tracks trades (/trader)
 * The data collection service that feeds data into the ML model (/collector)
 * The web application for user control and monitoring (/web)
-* A RabbitMQ message broker for inter-service communication (/broker)
 
-The microservices communicate via the broker using internal APIs in protocol buffers (https://github.com/protocolbuffers/protobuf). The current version only supports being run on a single server, so no key exchange occurs between APIs.
+The microservices communicate via gRPC (https://grpc.io). The current version only supports being run on a single server, so no key exchange occurs between APIs.
 
 
 ## Usage
 TBD
 
 ## Under Development
-* API/messaging interfaces
+* RPC/messaging interfaces
 * Data collection logic
 * Trading logic
 * Machine learning model & training

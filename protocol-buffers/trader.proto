@@ -1,0 +1,22 @@
+syntax = "proto3";
+import "PATH/collector.proto";
+
+package taurus;
+
+service Trader {
+    rpc GetRecentTrades (TradeRequest) returns (TradeSet) {}
+    rpc SetConstraint (Constraint) returns (ConstraintReply) {}
+    rpc MakeTrade (Trade) returns (TradeReply) {}
+}
+
+message Constraint {
+    string data = 1;
+}
+
+message ConstraintReply {
+    string status = 1;
+}
+
+message TradeReply {
+    string status = 1;
+}

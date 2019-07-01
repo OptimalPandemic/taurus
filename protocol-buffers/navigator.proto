@@ -1,0 +1,23 @@
+syntax = "proto3";
+import "PATH/collector.proto";
+import "PATH/web.proto";
+
+package taurus;
+
+service Navigator {
+    rpc PutCandlesticks (CandlestickSet) returns (CandlestickReply) {}
+    rpc InformPortfolio (Portfolio) returns (InformReply) {}
+}
+
+message CandlestickReply {
+    string message = 1;
+}
+
+message Portfolio {
+    repeated Asset assets = 1;
+}
+
+message Asset {
+    string Symbol = 1;
+    double amount = 2;
+}

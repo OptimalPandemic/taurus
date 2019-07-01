@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+package taurus;
+
+message CandlestickRequest {
+    int64 timestamp_start = 1;
+    int64 timestamp_end = 2;
+    string symbol = 3;
+}
+
+message Candlestick {
+    int64 timestamp = 1;
+    double open = 2;
+    double high = 3;
+    double low = 4;
+    double close = 5;
+    double volume = 6;
+    string symbol = 7;
+}
+
+message CandlestickSet {
+    repeated Candlestick candlesticks = 1;
+}
+
+message TradeRequest {
+    string id = 1;
+    int64 timestamp_start = 2;
+    int64 timestamp_end = 3;
+    string symbol = 4;
+    string type = 5;
+}
+
+message Trade {
+    string info = 1;
+    string id = 2;
+    int64 timestamp = 3;
+    string datetime = 4;
+    string symbol = 5;
+    string order = 6;
+    string type = 7;
+    string side = 8;
+    string takerOrMaker = 9;
+    double price = 10;
+    double amount = 11;
+    double cost = 12;
+    double fee_cost = 13;
+    string fee_currency = 14;
+    double fee_rate = 15;
+}
+
+message TradeSet {
+    repeated Trade trades = 1;
+}
+
+service Collector {
+    rpc GetCandlestick (CandlestickRequest) returns (Candlestick) {}
+    rpc GetCandlesticks (CandlestickRequest) returns (CandlestickSet) {}
+    rpc GetTrade (TradeRequest) returns (Trade) {}
+    rpc GetTrades (TradeRequest) returns (TradeSet) {}
+}
