@@ -10,6 +10,8 @@ Taurus is based on several microservices in a monorepo:
 
 The microservices communicate via gRPC (https://grpc.io). The current version only supports being run on a single server, so no key exchange occurs between APIs.
 
+## Prerequisites
+This application requires protoc/protobuf, gRPC, Docker and Docker Compose to build.
 
 ## Usage
 TBD

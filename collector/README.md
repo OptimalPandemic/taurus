@@ -22,12 +22,13 @@ Prices and volume are in units of the base currency (default is BTC).
 ```
 [
     {
+        'id':			1							// integer id in database
         'info':         { ... },                    // the original decoded JSON as is
-        'id':           '12345-67890:09876/54321',  // string trade id
+        'trade_id':     '12345-67890:09876/54321',  // string trade id
         'timestamp':    1502962946216,              // Unix timestamp in milliseconds
         'datetime':     '2017-08-17 12:42:48.000',  // ISO8601 datetime with milliseconds
         'symbol':       'ETH/BTC',                  // symbol
-        'order':        '12345-67890:09876/54321',  // string order id or undefined/None/null
+        'order_id':     '12345-67890:09876/54321',  // string order id or undefined/None/null
         'type':         'limit',                    // order type, 'market', 'limit' or undefined/None/null
         'side':         'buy',                      // direction of the trade, 'buy' or 'sell'
         'takerOrMaker': 'taker',                    // string, 'taker' or 'maker'
