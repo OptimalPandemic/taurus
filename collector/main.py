@@ -1,11 +1,17 @@
 import grpc
 import mysql.connector
-import re
+import ccxt
+import time
 
 from collector import collector_pb2_grpc, collector_pb2
 
 
+def main():
+    candlestick = Collector.poll_candlesticks()
+
+
 class Collector(collector_pb2_grpc.CollectorServicer):
+    exchange = ccxt.binance()
 
     db = mysql.connector.connect(   # TODO variable-ize this
         host="localhost",
@@ -166,3 +172,22 @@ class Collector(collector_pb2_grpc.CollectorServicer):
             context.set_details("Timestamp is missing, symbol is missing, or symbol is malformed.")
             context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
             return collector_pb2.TradeSet()
+
+    @staticmethod
+    async def poll_candlesticks(self, start_time=-1):
+        if self.exchange.has['fetchOHLCV'] and start_time == -1:
+            if start_time == -1:
+                # Poll for data continuously
+                while True:
+                    for symbol in self.exchange.markets:
+                        time.sleep(self.exchange.rateLimit / 1000)
+                        yield await self.exchange.fetch_ohclv(symbol, '30m')  # Return to caller as polled
+            elif start_time != -1:
+                # Pull data for timespan
+                for symbol in self.exchange.markets:
+                    time.sleep(self.exchange.rateLimit / 1000)
+                    yield await self.exchange.fetch_ohclv(symbol, '30m', start_time)
+            else:
+                raise Exception
+        else:
+            raise Exception     # TODO do something better here
