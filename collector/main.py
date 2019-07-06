@@ -1,17 +1,13 @@
+import asyncio
+import time
 import grpc
 import mysql.connector
 import ccxt
-import time
 
 from collector import collector_pb2_grpc, collector_pb2
 
 
-def main():
-    candlestick = Collector.poll_candlesticks()
-
-
 class Collector(collector_pb2_grpc.CollectorServicer):
-    exchange = ccxt.binance()
 
     db = mysql.connector.connect(   # TODO variable-ize this
         host="localhost",
@@ -19,9 +15,57 @@ class Collector(collector_pb2_grpc.CollectorServicer):
         passwd="root"
     )
 
-    cursor = db.cursor(prepared=True)
+    @staticmethod
+    async def manage_database():
+        period = 1800  # 30 minutes
+        num_periods = 25
+        data_age = period * num_periods
+
+        exchange = ccxt.binance()
+        symbols = [
+            'BTC/USD',
+            'BCH/USD'
+        ]
+
+        # Check if database is empty or stale
+        db = mysql.connector.connect(  # TODO variable-ize this
+            host="localhost",
+            user="root",
+            passwd="root"
+        )
+
+        cursor = db.cursor(prepared=True)
+        query = """SELECT IFNULL(MAX(time), -1) FROM candlesticks"""
+        cursor.execute(query)
+        timestamp_highest = cursor.fetchone()
+
+        if timestamp_highest == -1:
+            # Database is empty
+            for symbol in symbols:
+                candlesticks = Collector.poll_candlesticks(exchange, symbol, int(time.time()) - data_age)
+                for c in candlesticks:
+                    Collector.write_candlestick(c[0], c[1], c[2], c[3], c[4], c[5], symbol, cursor)
+
+        elif timestamp_highest < time.time() - period:
+            # Database is stale (older than 30m)
+            # if data is older than data_age, only pull data since then, otherwise pull all data since most recent stored data
+            since = time.time() - data_age if timestamp_highest < time.time() - data_age else time.time() - period
+            for symbol in symbols:
+                candlesticks = Collector.poll_candlesticks(exchange, symbol, int(since))
+                for c in candlesticks:
+                    Collector.write_candlestick(c[0], c[1], c[2], c[3], c[4], c[5], symbol, cursor)
+
+        # Do poll to database every 15 minutes
+        for symbol in symbols:
+            candlesticks = Collector.poll_candlesticks(exchange, symbol, int(time.time()))
+            for c in candlesticks:
+                Collector.write_candlestick(c[0], c[1], c[2], c[3], c[4], c[5], symbol, cursor)
+            asyncio.sleep(period / 2)
+
+        cursor.close()
 
     def GetCandlestick(self, request, context):
+        cursor = self.db.cursor(prepared=True)
         if request.timestamp_start is not None and request.symbol is not None \
                 and request.symbol.match("([A-Z]){3}\/([A-Z]){3}"):
             if request.timestamp_end is not None and request.timestamp_start < request.timestamp_end:
@@ -32,9 +76,9 @@ class Collector(collector_pb2_grpc.CollectorServicer):
             query = """SELECT * from candlesticks WHERE time=%s AND symbol=%s"""
             timestamp = request.timestamp_start
             symbol = request.symbol
-            self.cursor.execute(query, (timestamp, symbol))
-            candlestick = self.cursor.fetchone()
-            self.cursor.close()
+            cursor.execute(query, (timestamp, symbol))
+            candlestick = cursor.fetchone()
+            cursor.close()
 
             return collector_pb2.Candlestick(
                 timestamp=candlestick[1],
@@ -53,6 +97,7 @@ class Collector(collector_pb2_grpc.CollectorServicer):
             return collector_pb2.Candlestick()
 
     def GetCandlesticks(self, request, context):
+        cursor = self.db.cursor(prepared=True)
         if request.timestamp_start is not None and request.symbol is not None \
                 and request.symbol.match("([A-Z]){3}\/([A-Z]){3}"):
             if request.timestamp_end is not None and request.timestamp_start < request.timestamp_end:
@@ -61,9 +106,9 @@ class Collector(collector_pb2_grpc.CollectorServicer):
                 time_start = request.timestamp_start
                 time_end = request.timestamp_end
                 symbol = request.symbol
-                self.cursor.execute(query, (time_start, time_end, symbol))
-                candlesticks = self.cursor.fetchall()
-                self.cursor.close()
+                cursor.execute(query, (time_start, time_end, symbol))
+                candlesticks = cursor.fetchall()
+                cursor.close()
 
                 # Add all pulled candlesticks to candlestick set
                 candlestick_set = collector_pb2.CandlestickSet
@@ -90,6 +135,7 @@ class Collector(collector_pb2_grpc.CollectorServicer):
             return collector_pb2.CandlestickSet()
 
     def GetTrade(self, request, context):
+        cursor = self.db.cursor(prepared=True)
         if request.timestamp_start is not None and request.symbol is not None \
                 and request.symbol.match("([A-Z]){3}\/([A-Z]){3}"):
             if request.timestamp_end is not None and request.timestamp_start < request.timestamp_end:
@@ -100,9 +146,9 @@ class Collector(collector_pb2_grpc.CollectorServicer):
             query = """SELECT * from trades WHERE time=%s AND symbol=%s"""
             timestamp = request.timestamp_start
             symbol = request.symbol
-            self.cursor.execute(query, (timestamp, symbol))
-            trade = self.cursor.fetchone()
-            self.cursor.close()
+            cursor.execute(query, (timestamp, symbol))
+            trade = cursor.fetchone()
+            cursor.close()
 
             return collector_pb2.Trade(
                 info=trade[1],
@@ -129,6 +175,7 @@ class Collector(collector_pb2_grpc.CollectorServicer):
             return collector_pb2.Trade()
 
     def GetTrades(self, request, context):
+        cursor = self.db.cursor(prepared=True)
         if request.timestamp_start is not None and request.symbol is not None \
                 and request.symbol.match("([A-Z]){3}\/([A-Z]){3}"):
             if request.timestamp_end is not None and request.timestamp_start < request.timestamp_end:
@@ -137,9 +184,9 @@ class Collector(collector_pb2_grpc.CollectorServicer):
                 time_start = request.timestamp_start
                 time_end = request.timestamp_end
                 symbol = request.symbol
-                self.cursor.execute(query, (time_start, time_end, symbol))
-                trades = self.cursor.fetchall()
-                self.cursor.close()
+                cursor.execute(query, (time_start, time_end, symbol))
+                trades = cursor.fetchall()
+                cursor.close()
 
                 # Add all pulled trades to trade set
                 trade_set = collector_pb2.TradeSet
@@ -173,21 +220,44 @@ class Collector(collector_pb2_grpc.CollectorServicer):
             context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
             return collector_pb2.TradeSet()
 
+    """
+    Polls exchanges for candlestick data asynchronously.
+    
+    :param exchange: exchange to pull data from
+    :type exchange: CCXT object
+    :param since: timestamp of the first candlestick to pull, -1 to continuously poll from now
+    :param symbols: all currency symbols to pull data for
+    :type str: e.g. 'BTC/USD'
+    :type timestamp: unix timestamp
+    :returns: candlesticks
+    :type: array
+    """
     @staticmethod
-    async def poll_candlesticks(self, start_time=-1):
-        if self.exchange.has['fetchOHLCV'] and start_time == -1:
-            if start_time == -1:
+    async def poll_candlesticks(exchange, symbols, since=-1):
+        if exchange.has['fetchOHLCV'] and exchange.has['fetchOHLVC'] is not 'emulated' and since == -1:
+            if since == -1:
                 # Poll for data continuously
                 while True:
-                    for symbol in self.exchange.markets:
-                        time.sleep(self.exchange.rateLimit / 1000)
-                        yield await self.exchange.fetch_ohclv(symbol, '30m')  # Return to caller as polled
-            elif start_time != -1:
+                    for symbol in symbols:
+                        await asyncio.sleep(exchange.rateLimit / 1000)
+                        yield await exchange.fetch_ohclv(symbol, '30m')  # Return to caller as polled
+            elif since != -1:
                 # Pull data for timespan
-                for symbol in self.exchange.markets:
-                    time.sleep(self.exchange.rateLimit / 1000)
-                    yield await self.exchange.fetch_ohclv(symbol, '30m', start_time)
+                for symbol in symbols:
+                    await asyncio.sleep(exchange.rateLimit / 1000)
+                    yield await exchange.fetch_ohclv(symbol, '30m', since)
             else:
                 raise Exception
         else:
             raise Exception     # TODO do something better here
+
+    """
+    Writes candlestick to database, and leaves cursor open.
+    
+    :param cursor: MySQL database cursor
+    :type object: from mysql.connect 
+    """
+    @staticmethod
+    def write_candlestick(time, open, high, low, close, volume, symbol, cursor):
+        query = """INSERT INTO candlesticks(time, open, high, low, close, volume, symbol) VALUES(%s, %s, %s, %s, %s, %s, %s)"""
+        cursor.execute(query, (time, open, high, low, close, volume, symbol))

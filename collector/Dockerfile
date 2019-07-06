@@ -5,6 +5,6 @@ EXPOSE 50051
 WORKDIR /app
 
 COPY requirements.txt /app
-RUN pip install -r requirements.txt
+RUN pip3 install -r requirements.txt
 COPY *.py /app
-CMD python main.py
+CMD python3 main.py

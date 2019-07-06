@@ -3,6 +3,8 @@ services:
 
   db:
     image: mysql:8.0
+    dns:
+      - 8.8.8.8
     ports:
       - "32000:3306"
     environment:
