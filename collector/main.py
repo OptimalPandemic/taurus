@@ -3,8 +3,11 @@ import time
 import grpc
 import mysql.connector
 import ccxt
+from concurrent import futures
 
 from collector import collector_pb2_grpc, collector_pb2
+from navigator import navigator_pb2_grpc
+from web import web_pb2_grpc
 
 
 class Collector(collector_pb2_grpc.CollectorServicer):
@@ -15,8 +18,12 @@ class Collector(collector_pb2_grpc.CollectorServicer):
         passwd="root"
     )
 
-    @staticmethod
-    async def manage_database():
+    channel_navigator = grpc.insecure_channel('localhost:8082')
+    navigator_stub = navigator_pb2_grpc.NavigatorStub(channel_navigator)
+    channel_web = grpc.insecure_channel('localhost:8080')
+    web_stub = web_pb2_grpc.WebStub(channel_web)
+
+    async def manage_database(self):
         period = 1800  # 30 minutes
         num_periods = 25
         data_age = period * num_periods
@@ -28,16 +35,12 @@ class Collector(collector_pb2_grpc.CollectorServicer):
         ]
 
         # Check if database is empty or stale
-        db = mysql.connector.connect(  # TODO variable-ize this
-            host="localhost",
-            user="root",
-            passwd="root"
-        )
 
-        cursor = db.cursor(prepared=True)
+        cursor = self.db.cursor(prepared=True)
         query = """SELECT IFNULL(MAX(time), -1) FROM candlesticks"""
         cursor.execute(query)
         timestamp_highest = cursor.fetchone()
+        to_inform = collector_pb2.CandlestickSet()
 
         if timestamp_highest == -1:
             # Database is empty
@@ -45,6 +48,7 @@ class Collector(collector_pb2_grpc.CollectorServicer):
                 candlesticks = Collector.poll_candlesticks(exchange, symbol, int(time.time()) - data_age)
                 for c in candlesticks:
                     Collector.write_candlestick(c[0], c[1], c[2], c[3], c[4], c[5], symbol, cursor)
+                    to_inform.add(collector_pb2.Candlestick(c[0], c[1], c[2], c[3], c[4], c[5], symbol))
 
         elif timestamp_highest < time.time() - period:
             # Database is stale (older than 30m)
@@ -54,15 +58,23 @@ class Collector(collector_pb2_grpc.CollectorServicer):
                 candlesticks = Collector.poll_candlesticks(exchange, symbol, int(since))
                 for c in candlesticks:
                     Collector.write_candlestick(c[0], c[1], c[2], c[3], c[4], c[5], symbol, cursor)
+                    to_inform.add(collector_pb2.Candlestick(c[0], c[1], c[2], c[3], c[4], c[5], symbol))
 
-        # Do poll to database every 15 minutes
-        for symbol in symbols:
-            candlesticks = Collector.poll_candlesticks(exchange, symbol, int(time.time()))
-            for c in candlesticks:
-                Collector.write_candlestick(c[0], c[1], c[2], c[3], c[4], c[5], symbol, cursor)
+        # Give candlesticks to navigator and web  TODO do something smart here to prevent duplicate data in navigator
+        response_navigator = self.navigator_stub.PutCandlesticks(candlesticks=to_inform)
+        response_web = self.web_stub.InformCandlesticks(candlesticks=to_inform)
+
+        # Do poll to database every 15 minutes and write to db and give to navigator
+        while True:
+            for symbol in symbols:
+                to_inform = collector_pb2.CandlestickSet()
+                candlesticks = Collector.poll_candlesticks(exchange, symbol, int(time.time()))
+                for c in candlesticks:
+                    Collector.write_candlestick(c[0], c[1], c[2], c[3], c[4], c[5], symbol, cursor)
+                    to_inform.add(collector_pb2.Candlestick(c[0], c[1], c[2], c[3], c[4], c[5], symbol))
+            response_navigator = self.navigator_stub.PutCandlesticks(candlesticks=to_inform)
+            response_web = self.web_stub.InformCandlesticks(candlesticks=to_inform)
             asyncio.sleep(period / 2)
-
-        cursor.close()
 
     def GetCandlestick(self, request, context):
         cursor = self.db.cursor(prepared=True)
@@ -261,3 +273,12 @@ class Collector(collector_pb2_grpc.CollectorServicer):
     def write_candlestick(time, open, high, low, close, volume, symbol, cursor):
         query = """INSERT INTO candlesticks(time, open, high, low, close, volume, symbol) VALUES(%s, %s, %s, %s, %s, %s, %s)"""
         cursor.execute(query, (time, open, high, low, close, volume, symbol))
+
+
+c = Collector()
+server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+collector_pb2_grpc.add_CollectorServicer_to_server(c, server)
+server.add_insecure_port('[::]:50051')
+server.start()  # Wait for gRPC messages
+c.manage_database()  # Start polling
+

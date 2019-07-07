@@ -22,6 +22,7 @@ TBD
 * Trading logic
 * Machine learning model & training
 * Web interface
+* Logging
 
 ## Credits
 The reinforcement learning model for this project is based on a graduate paper from Zhengyao Jiang, Dixing Xu, and Jinjun Liang of Xi'an Jiaotong-Liverpool University in Suzhou, China.
