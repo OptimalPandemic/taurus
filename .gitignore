@@ -109,3 +109,5 @@ venv.bak/
 
 /web/node_modules
 /web/yarn.lock
+
+db/

@@ -3,8 +3,6 @@ services:
 
   db:
     image: mysql:8.0
-    dns:
-      - 8.8.8.8
     ports:
       - "32000:3306"
     environment:
@@ -21,6 +19,8 @@ services:
       - "8081:50051"
     volumes:
       - './collector:/collector'
+    links:
+      - db
 
   navigator:
     build: ./navigator
@@ -29,6 +29,8 @@ services:
     tty: true
     ports:
       - "8082:50051"
+    links:
+      - collector
 
   web:
     build: ./web
@@ -37,6 +39,8 @@ services:
       - "8083:50051"
       - "8080:80"
       - "8443:443"
+    links:
+      - collector
 
   trader:
     build: ./trader
@@ -47,3 +51,7 @@ services:
     tty: true
     ports:
       - "8084:50051"
+    links:
+      - collector
+      - navigator
+      - web

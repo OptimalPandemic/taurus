@@ -5,23 +5,27 @@ import mysql.connector
 import ccxt
 from concurrent import futures
 
-from collector import collector_pb2_grpc, collector_pb2
-from navigator import navigator_pb2_grpc
-from web import web_pb2_grpc
+# from .grpc_bin import collector_pb2_grpc, collector_pb2,
+
+from collector_pb2 import *
+from collector_pb2_grpc import *
+from navigator_pb2_grpc import *
+from web_pb2_grpc import *
 
 
-class Collector(collector_pb2_grpc.CollectorServicer):
+class Collector(CollectorServicer):
 
     db = mysql.connector.connect(   # TODO variable-ize this
-        host="localhost",
+        host="db",
         user="root",
-        passwd="root"
+        passwd="root",
+        port=3306
     )
 
     channel_navigator = grpc.insecure_channel('localhost:8082')
-    navigator_stub = navigator_pb2_grpc.NavigatorStub(channel_navigator)
+    navigator_stub = NavigatorStub(channel_navigator)
     channel_web = grpc.insecure_channel('localhost:8080')
-    web_stub = web_pb2_grpc.WebStub(channel_web)
+    web_stub = WebStub(channel_web)
 
     async def manage_database(self):
         period = 1800  # 30 minutes
@@ -40,7 +44,7 @@ class Collector(collector_pb2_grpc.CollectorServicer):
         query = """SELECT IFNULL(MAX(time), -1) FROM candlesticks"""
         cursor.execute(query)
         timestamp_highest = cursor.fetchone()
-        to_inform = collector_pb2.CandlestickSet()
+        to_inform = CandlestickSet()
 
         if timestamp_highest == -1:
             # Database is empty
@@ -48,17 +52,18 @@ class Collector(collector_pb2_grpc.CollectorServicer):
                 candlesticks = Collector.poll_candlesticks(exchange, symbol, int(time.time()) - data_age)
                 for c in candlesticks:
                     Collector.write_candlestick(c[0], c[1], c[2], c[3], c[4], c[5], symbol, cursor)
-                    to_inform.add(collector_pb2.Candlestick(c[0], c[1], c[2], c[3], c[4], c[5], symbol))
+                    to_inform.add(Candlestick(c[0], c[1], c[2], c[3], c[4], c[5], symbol))
 
         elif timestamp_highest < time.time() - period:
             # Database is stale (older than 30m)
-            # if data is older than data_age, only pull data since then, otherwise pull all data since most recent stored data
+            # if data is older than data_age, only pull data since then
+            # otherwise pull all data since most recent stored data
             since = time.time() - data_age if timestamp_highest < time.time() - data_age else time.time() - period
             for symbol in symbols:
                 candlesticks = Collector.poll_candlesticks(exchange, symbol, int(since))
                 for c in candlesticks:
                     Collector.write_candlestick(c[0], c[1], c[2], c[3], c[4], c[5], symbol, cursor)
-                    to_inform.add(collector_pb2.Candlestick(c[0], c[1], c[2], c[3], c[4], c[5], symbol))
+                    to_inform.add(Candlestick(c[0], c[1], c[2], c[3], c[4], c[5], symbol))
 
         # Give candlesticks to navigator and web  TODO do something smart here to prevent duplicate data in navigator
         response_navigator = self.navigator_stub.PutCandlesticks(candlesticks=to_inform)
@@ -67,11 +72,11 @@ class Collector(collector_pb2_grpc.CollectorServicer):
         # Do poll to database every 15 minutes and write to db and give to navigator
         while True:
             for symbol in symbols:
-                to_inform = collector_pb2.CandlestickSet()
+                to_inform = CandlestickSet()
                 candlesticks = Collector.poll_candlesticks(exchange, symbol, int(time.time()))
                 for c in candlesticks:
                     Collector.write_candlestick(c[0], c[1], c[2], c[3], c[4], c[5], symbol, cursor)
-                    to_inform.add(collector_pb2.Candlestick(c[0], c[1], c[2], c[3], c[4], c[5], symbol))
+                    to_inform.add(Candlestick(c[0], c[1], c[2], c[3], c[4], c[5], symbol))
             response_navigator = self.navigator_stub.PutCandlesticks(candlesticks=to_inform)
             response_web = self.web_stub.InformCandlesticks(candlesticks=to_inform)
             asyncio.sleep(period / 2)
@@ -92,7 +97,7 @@ class Collector(collector_pb2_grpc.CollectorServicer):
             candlestick = cursor.fetchone()
             cursor.close()
 
-            return collector_pb2.Candlestick(
+            return Candlestick(
                 timestamp=candlestick[1],
                 open=candlestick[2],
                 high=candlestick[3],
@@ -106,7 +111,7 @@ class Collector(collector_pb2_grpc.CollectorServicer):
             # Request is malformed
             context.set_details("Timestamp is missing, symbol is missing, or symbol is malformed.")
             context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
-            return collector_pb2.Candlestick()
+            return Candlestick()
 
     def GetCandlesticks(self, request, context):
         cursor = self.db.cursor(prepared=True)
@@ -123,10 +128,10 @@ class Collector(collector_pb2_grpc.CollectorServicer):
                 cursor.close()
 
                 # Add all pulled candlesticks to candlestick set
-                candlestick_set = collector_pb2.CandlestickSet
+                candlestick_set = CandlestickSet
 
                 for candlestick in candlesticks:
-                    candlestick_set.add(collector_pb2.Candlestick(
+                    candlestick_set.add(Candlestick(
                         timestamp=candlestick[1],
                         open=candlestick[2],
                         high=candlestick[3],
@@ -144,7 +149,7 @@ class Collector(collector_pb2_grpc.CollectorServicer):
             # Request is malformed
             context.set_details("Timestamp is missing, symbol is missing, or symbol is malformed.")
             context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
-            return collector_pb2.CandlestickSet()
+            return CandlestickSet()
 
     def GetTrade(self, request, context):
         cursor = self.db.cursor(prepared=True)
@@ -162,7 +167,7 @@ class Collector(collector_pb2_grpc.CollectorServicer):
             trade = cursor.fetchone()
             cursor.close()
 
-            return collector_pb2.Trade(
+            return Trade(
                 info=trade[1],
                 id=trade[2],
                 timestamp=trade[3],
@@ -184,7 +189,7 @@ class Collector(collector_pb2_grpc.CollectorServicer):
             # Request is malformed
             context.set_details("Timestamp is missing, symbol is missing, or symbol is malformed.")
             context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
-            return collector_pb2.Trade()
+            return Trade()
 
     def GetTrades(self, request, context):
         cursor = self.db.cursor(prepared=True)
@@ -201,10 +206,10 @@ class Collector(collector_pb2_grpc.CollectorServicer):
                 cursor.close()
 
                 # Add all pulled trades to trade set
-                trade_set = collector_pb2.TradeSet
+                trade_set = TradeSet
 
                 for trade in trades:
-                    trade_set.add(collector_pb2.Trade(
+                    trade_set.add(Trade(
                         info=trade[1],
                         id=trade[2],
                         timestamp=trade[3],
@@ -230,7 +235,7 @@ class Collector(collector_pb2_grpc.CollectorServicer):
             # Request is malformed
             context.set_details("Timestamp is missing, symbol is missing, or symbol is malformed.")
             context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
-            return collector_pb2.TradeSet()
+            return TradeSet()
 
     """
     Polls exchanges for candlestick data asynchronously.
@@ -277,7 +282,7 @@ class Collector(collector_pb2_grpc.CollectorServicer):
 
 c = Collector()
 server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-collector_pb2_grpc.add_CollectorServicer_to_server(c, server)
+add_CollectorServicer_to_server(c, server)
 server.add_insecure_port('[::]:50051')
 server.start()  # Wait for gRPC messages
 c.manage_database()  # Start polling
