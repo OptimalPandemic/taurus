@@ -125,25 +125,25 @@ DESCRIPTOR.message_types_by_name['ConstraintReply'] = _CONSTRAINTREPLY
 DESCRIPTOR.message_types_by_name['TradeReply'] = _TRADEREPLY
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
-Constraint = _reflection.GeneratedProtocolMessageType('Constraint', (_message.Message,), dict(
-  DESCRIPTOR = _CONSTRAINT,
-  __module__ = 'trader_pb2'
+Constraint = _reflection.GeneratedProtocolMessageType('Constraint', (_message.Message,), {
+  'DESCRIPTOR' : _CONSTRAINT,
+  '__module__' : 'trader_pb2'
   # @@protoc_insertion_point(class_scope:taurus.Constraint)
-  ))
+  })
 _sym_db.RegisterMessage(Constraint)
 
-ConstraintReply = _reflection.GeneratedProtocolMessageType('ConstraintReply', (_message.Message,), dict(
-  DESCRIPTOR = _CONSTRAINTREPLY,
-  __module__ = 'trader_pb2'
+ConstraintReply = _reflection.GeneratedProtocolMessageType('ConstraintReply', (_message.Message,), {
+  'DESCRIPTOR' : _CONSTRAINTREPLY,
+  '__module__' : 'trader_pb2'
   # @@protoc_insertion_point(class_scope:taurus.ConstraintReply)
-  ))
+  })
 _sym_db.RegisterMessage(ConstraintReply)
 
-TradeReply = _reflection.GeneratedProtocolMessageType('TradeReply', (_message.Message,), dict(
-  DESCRIPTOR = _TRADEREPLY,
-  __module__ = 'trader_pb2'
+TradeReply = _reflection.GeneratedProtocolMessageType('TradeReply', (_message.Message,), {
+  'DESCRIPTOR' : _TRADEREPLY,
+  '__module__' : 'trader_pb2'
   # @@protoc_insertion_point(class_scope:taurus.TradeReply)
-  ))
+  })
 _sym_db.RegisterMessage(TradeReply)
 
 

@@ -403,46 +403,46 @@ DESCRIPTOR.message_types_by_name['Trade'] = _TRADE
 DESCRIPTOR.message_types_by_name['TradeSet'] = _TRADESET
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
-CandlestickRequest = _reflection.GeneratedProtocolMessageType('CandlestickRequest', (_message.Message,), dict(
-  DESCRIPTOR = _CANDLESTICKREQUEST,
-  __module__ = 'collector_pb2'
+CandlestickRequest = _reflection.GeneratedProtocolMessageType('CandlestickRequest', (_message.Message,), {
+  'DESCRIPTOR' : _CANDLESTICKREQUEST,
+  '__module__' : 'collector_pb2'
   # @@protoc_insertion_point(class_scope:taurus.CandlestickRequest)
-  ))
+  })
 _sym_db.RegisterMessage(CandlestickRequest)
 
-Candlestick = _reflection.GeneratedProtocolMessageType('Candlestick', (_message.Message,), dict(
-  DESCRIPTOR = _CANDLESTICK,
-  __module__ = 'collector_pb2'
+Candlestick = _reflection.GeneratedProtocolMessageType('Candlestick', (_message.Message,), {
+  'DESCRIPTOR' : _CANDLESTICK,
+  '__module__' : 'collector_pb2'
   # @@protoc_insertion_point(class_scope:taurus.Candlestick)
-  ))
+  })
 _sym_db.RegisterMessage(Candlestick)
 
-CandlestickSet = _reflection.GeneratedProtocolMessageType('CandlestickSet', (_message.Message,), dict(
-  DESCRIPTOR = _CANDLESTICKSET,
-  __module__ = 'collector_pb2'
+CandlestickSet = _reflection.GeneratedProtocolMessageType('CandlestickSet', (_message.Message,), {
+  'DESCRIPTOR' : _CANDLESTICKSET,
+  '__module__' : 'collector_pb2'
   # @@protoc_insertion_point(class_scope:taurus.CandlestickSet)
-  ))
+  })
 _sym_db.RegisterMessage(CandlestickSet)
 
-TradeRequest = _reflection.GeneratedProtocolMessageType('TradeRequest', (_message.Message,), dict(
-  DESCRIPTOR = _TRADEREQUEST,
-  __module__ = 'collector_pb2'
+TradeRequest = _reflection.GeneratedProtocolMessageType('TradeRequest', (_message.Message,), {
+  'DESCRIPTOR' : _TRADEREQUEST,
+  '__module__' : 'collector_pb2'
   # @@protoc_insertion_point(class_scope:taurus.TradeRequest)
-  ))
+  })
 _sym_db.RegisterMessage(TradeRequest)
 
-Trade = _reflection.GeneratedProtocolMessageType('Trade', (_message.Message,), dict(
-  DESCRIPTOR = _TRADE,
-  __module__ = 'collector_pb2'
+Trade = _reflection.GeneratedProtocolMessageType('Trade', (_message.Message,), {
+  'DESCRIPTOR' : _TRADE,
+  '__module__' : 'collector_pb2'
   # @@protoc_insertion_point(class_scope:taurus.Trade)
-  ))
+  })
 _sym_db.RegisterMessage(Trade)
 
-TradeSet = _reflection.GeneratedProtocolMessageType('TradeSet', (_message.Message,), dict(
-  DESCRIPTOR = _TRADESET,
-  __module__ = 'collector_pb2'
+TradeSet = _reflection.GeneratedProtocolMessageType('TradeSet', (_message.Message,), {
+  'DESCRIPTOR' : _TRADESET,
+  '__module__' : 'collector_pb2'
   # @@protoc_insertion_point(class_scope:taurus.TradeSet)
-  ))
+  })
 _sym_db.RegisterMessage(TradeSet)
 
 

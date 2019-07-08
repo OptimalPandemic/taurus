@@ -1,5 +1,4 @@
 protobuf>=3.0.0
 grpcio>=1.21.1
-mysql-connector-python>=8.0
 asyncio>=3.4.3
-ccxt>=1.18.902
+tensorflow>=1.14.0

@@ -134,25 +134,25 @@ DESCRIPTOR.message_types_by_name['Portfolio'] = _PORTFOLIO
 DESCRIPTOR.message_types_by_name['Asset'] = _ASSET
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
-CandlestickReply = _reflection.GeneratedProtocolMessageType('CandlestickReply', (_message.Message,), dict(
-  DESCRIPTOR = _CANDLESTICKREPLY,
-  __module__ = 'navigator_pb2'
+CandlestickReply = _reflection.GeneratedProtocolMessageType('CandlestickReply', (_message.Message,), {
+  'DESCRIPTOR' : _CANDLESTICKREPLY,
+  '__module__' : 'navigator_pb2'
   # @@protoc_insertion_point(class_scope:taurus.CandlestickReply)
-  ))
+  })
 _sym_db.RegisterMessage(CandlestickReply)
 
-Portfolio = _reflection.GeneratedProtocolMessageType('Portfolio', (_message.Message,), dict(
-  DESCRIPTOR = _PORTFOLIO,
-  __module__ = 'navigator_pb2'
+Portfolio = _reflection.GeneratedProtocolMessageType('Portfolio', (_message.Message,), {
+  'DESCRIPTOR' : _PORTFOLIO,
+  '__module__' : 'navigator_pb2'
   # @@protoc_insertion_point(class_scope:taurus.Portfolio)
-  ))
+  })
 _sym_db.RegisterMessage(Portfolio)
 
-Asset = _reflection.GeneratedProtocolMessageType('Asset', (_message.Message,), dict(
-  DESCRIPTOR = _ASSET,
-  __module__ = 'navigator_pb2'
+Asset = _reflection.GeneratedProtocolMessageType('Asset', (_message.Message,), {
+  'DESCRIPTOR' : _ASSET,
+  '__module__' : 'navigator_pb2'
   # @@protoc_insertion_point(class_scope:taurus.Asset)
-  ))
+  })
 _sym_db.RegisterMessage(Asset)
 
 

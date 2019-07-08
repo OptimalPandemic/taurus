@@ -127,25 +127,25 @@ DESCRIPTOR.message_types_by_name['ConstraintSet'] = _CONSTRAINTSET
 DESCRIPTOR.message_types_by_name['InformReply'] = _INFORMREPLY
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
-ConstraintRequest = _reflection.GeneratedProtocolMessageType('ConstraintRequest', (_message.Message,), dict(
-  DESCRIPTOR = _CONSTRAINTREQUEST,
-  __module__ = 'web_pb2'
+ConstraintRequest = _reflection.GeneratedProtocolMessageType('ConstraintRequest', (_message.Message,), {
+  'DESCRIPTOR' : _CONSTRAINTREQUEST,
+  '__module__' : 'web_pb2'
   # @@protoc_insertion_point(class_scope:taurus.ConstraintRequest)
-  ))
+  })
 _sym_db.RegisterMessage(ConstraintRequest)
 
-ConstraintSet = _reflection.GeneratedProtocolMessageType('ConstraintSet', (_message.Message,), dict(
-  DESCRIPTOR = _CONSTRAINTSET,
-  __module__ = 'web_pb2'
+ConstraintSet = _reflection.GeneratedProtocolMessageType('ConstraintSet', (_message.Message,), {
+  'DESCRIPTOR' : _CONSTRAINTSET,
+  '__module__' : 'web_pb2'
   # @@protoc_insertion_point(class_scope:taurus.ConstraintSet)
-  ))
+  })
 _sym_db.RegisterMessage(ConstraintSet)
 
-InformReply = _reflection.GeneratedProtocolMessageType('InformReply', (_message.Message,), dict(
-  DESCRIPTOR = _INFORMREPLY,
-  __module__ = 'web_pb2'
+InformReply = _reflection.GeneratedProtocolMessageType('InformReply', (_message.Message,), {
+  'DESCRIPTOR' : _INFORMREPLY,
+  '__module__' : 'web_pb2'
   # @@protoc_insertion_point(class_scope:taurus.InformReply)
-  ))
+  })
 _sym_db.RegisterMessage(InformReply)
 
 
