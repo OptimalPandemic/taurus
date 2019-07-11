@@ -1,11 +1,9 @@
 import asyncio
 import time
-import grpc
 import mysql.connector
 import ccxt
 from concurrent import futures
 
-# from .grpc_bin import collector_pb2_grpc, collector_pb2,
 
 from collector_pb2 import *
 from collector_pb2_grpc import *
@@ -19,7 +17,9 @@ class Collector(CollectorServicer):
         host="db",
         user="root",
         passwd="root",
-        port=3306
+        port=3306,
+        use_pure=True,
+        database="taurus"
     )
 
     channel_navigator = grpc.insecure_channel('localhost:8082')
@@ -32,10 +32,10 @@ class Collector(CollectorServicer):
         num_periods = 25
         data_age = period * num_periods
 
-        exchange = ccxt.binance()
+        exchange = ccxt.poloniex()
         symbols = [
-            'BTC/USD',
-            'BCH/USD'
+            'ETH/BTC',
+            'BCH/BTC'
         ]
 
         # Check if database is empty or stale
@@ -43,43 +43,44 @@ class Collector(CollectorServicer):
         cursor = self.db.cursor(prepared=True)
         query = """SELECT IFNULL(MAX(time), -1) FROM candlesticks"""
         cursor.execute(query)
-        timestamp_highest = cursor.fetchone()
+        timestamp_highest = int(cursor.fetchone()[0])
         to_inform = CandlestickSet()
 
         if timestamp_highest == -1:
             # Database is empty
             for symbol in symbols:
-                candlesticks = Collector.poll_candlesticks(exchange, symbol, int(time.time()) - data_age)
+                since = int(time.time() - data_age)
+                candlesticks = Collector.poll_candlesticks(exchange, symbols, since)
                 for c in candlesticks:
-                    Collector.write_candlestick(c[0], c[1], c[2], c[3], c[4], c[5], symbol, cursor)
-                    to_inform.add(Candlestick(c[0], c[1], c[2], c[3], c[4], c[5], symbol))
+                    self.write_candlestick(c[0]/1000, c[1], c[2], c[3], c[4], c[5], symbol, cursor)
+                    # to_inform = to_inform.CandlestickSet.extend([Candlestick(c[0]/1000, c[1], c[2], c[3], c[4], c[5], symbol)]) TODO fix
 
-        elif timestamp_highest < time.time() - period:
+        elif timestamp_highest < int(time.time() - period):
             # Database is stale (older than 30m)
             # if data is older than data_age, only pull data since then
             # otherwise pull all data since most recent stored data
             since = time.time() - data_age if timestamp_highest < time.time() - data_age else time.time() - period
             for symbol in symbols:
-                candlesticks = Collector.poll_candlesticks(exchange, symbol, int(since))
+                candlesticks = Collector.poll_candlesticks(exchange, symbols, int(since))
                 for c in candlesticks:
-                    Collector.write_candlestick(c[0], c[1], c[2], c[3], c[4], c[5], symbol, cursor)
-                    to_inform.add(Candlestick(c[0], c[1], c[2], c[3], c[4], c[5], symbol))
+                    self.write_candlestick(c[0]/1000, c[1], c[2], c[3], c[4], c[5], symbol, cursor)
+                    # to_inform = to_inform.CandlestickSet.extend([Candlestick(c[0]/1000, c[1], c[2], c[3], c[4], c[5], symbol)])
 
         # Give candlesticks to navigator and web  TODO do something smart here to prevent duplicate data in navigator
-        response_navigator = self.navigator_stub.PutCandlesticks(candlesticks=to_inform)
-        response_web = self.web_stub.InformCandlesticks(candlesticks=to_inform)
+        # response_navigator = self.navigator_stub.PutCandlesticks(candlesticks=to_inform)
+        # response_web = self.web_stub.InformCandlesticks(candlesticks=to_inform)
 
         # Do poll to database every 15 minutes and write to db and give to navigator
         while True:
             for symbol in symbols:
                 to_inform = CandlestickSet()
-                candlesticks = Collector.poll_candlesticks(exchange, symbol, int(time.time()))
+                candlesticks = Collector.poll_candlesticks(exchange, symbols, int(time.time()))
                 for c in candlesticks:
-                    Collector.write_candlestick(c[0], c[1], c[2], c[3], c[4], c[5], symbol, cursor)
-                    to_inform.add(Candlestick(c[0], c[1], c[2], c[3], c[4], c[5], symbol))
-            response_navigator = self.navigator_stub.PutCandlesticks(candlesticks=to_inform)
-            response_web = self.web_stub.InformCandlesticks(candlesticks=to_inform)
-            asyncio.sleep(period / 2)
+                    self.write_candlestick(c[0]/1000, c[1], c[2], c[3], c[4], c[5], symbol, cursor)
+                    # to_inform = to_inform.CandlestickSet.extend([Candlestick(c[0]/1000, c[1], c[2], c[3], c[4], c[5], symbol)])
+            # response_navigator = self.navigator_stub.PutCandlesticks(candlesticks=to_inform)
+            # response_web = self.web_stub.InformCandlesticks(candlesticks=to_inform)
+            await asyncio.sleep(period / 2)
 
     def GetCandlestick(self, request, context):
         cursor = self.db.cursor(prepared=True)
@@ -243,30 +244,37 @@ class Collector(CollectorServicer):
     :param exchange: exchange to pull data from
     :type exchange: CCXT object
     :param since: timestamp of the first candlestick to pull, -1 to continuously poll from now
-    :param symbols: all currency symbols to pull data for
+    :param symbol: all currency symbols to pull data for
     :type str: e.g. 'BTC/USD'
     :type timestamp: unix timestamp
     :returns: candlesticks
     :type: array
     """
     @staticmethod
-    async def poll_candlesticks(exchange, symbols, since=-1):
-        if exchange.has['fetchOHLCV'] and exchange.has['fetchOHLVC'] is not 'emulated' and since == -1:
+    def poll_candlesticks(exchange, symbols, since=-1):
+        ret = []
+        if exchange.has['fetchOHLCV'] and exchange.has['fetchOHLCV'] is not 'emulated':
             if since == -1:
                 # Poll for data continuously
                 while True:
                     for symbol in symbols:
-                        await asyncio.sleep(exchange.rateLimit / 1000)
-                        yield await exchange.fetch_ohclv(symbol, '30m')  # Return to caller as polled
+                        time.sleep(exchange.rateLimit / 1000)
+                        sticks = exchange.fetch_ohlcv(symbol, '30m')
+                        for stick in sticks:
+                            ret.append(stick)
             elif since != -1:
                 # Pull data for timespan
                 for symbol in symbols:
-                    await asyncio.sleep(exchange.rateLimit / 1000)
-                    yield await exchange.fetch_ohclv(symbol, '30m', since)
+                    time.sleep(exchange.rateLimit / 1000)
+                    sticks = exchange.fetch_ohlcv(symbol, '30m', since*1000)
+                    for stick in sticks:
+                        ret.append(stick)
             else:
-                raise Exception
+                raise AssertionError
+            return ret
         else:
-            raise Exception     # TODO do something better here
+            print('Exchange', exchange, 'does not support candlesticks! Failing loudly.')
+            raise Exception
 
     """
     Writes candlestick to database, and leaves cursor open.
@@ -274,16 +282,20 @@ class Collector(CollectorServicer):
     :param cursor: MySQL database cursor
     :type object: from mysql.connect 
     """
-    @staticmethod
-    def write_candlestick(time, open, high, low, close, volume, symbol, cursor):
+    def write_candlestick(self, time, open, high, low, close, volume, symbol, cursor):
         query = """INSERT INTO candlesticks(time, open, high, low, close, volume, symbol) VALUES(%s, %s, %s, %s, %s, %s, %s)"""
         cursor.execute(query, (time, open, high, low, close, volume, symbol))
+        self.db.commit()
 
 
-c = Collector()
-server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-add_CollectorServicer_to_server(c, server)
-server.add_insecure_port('[::]:50051')
-server.start()  # Wait for gRPC messages
-c.manage_database()  # Start polling
+async def main():
+    c = Collector()
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    add_CollectorServicer_to_server(c, server)
+    server.add_insecure_port('[::]:50051')
+    # await server.start()  # Wait for gRPC messages
+    await c.manage_database()  # Start polling
+
+if __name__ == "__main__":
+    asyncio.get_event_loop().run_until_complete(main())
 

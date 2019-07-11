@@ -1,6 +1,6 @@
-CREATE TABLE candlesticks (
-    id int,
-    time TIMESTAMP,
+CREATE TABLE taurus.candlesticks (
+    id int NOT NULL AUTO_INCREMENT,
+    time int,
     open double,
     high double,
     low double,
@@ -10,11 +10,11 @@ CREATE TABLE candlesticks (
     primary key (id)
 );
 
-CREATE TABLE trades (
-    id int,
+CREATE TABLE taurus.trades (
+    id int NOT NULL AUTO_INCREMENT,
     info text,
     trade_id text,
-    time timestamp,
+    time int,
     date_time datetime,
     symbol varchar(10),
     order_id text,
@@ -27,4 +27,4 @@ CREATE TABLE trades (
     fee_cost double,
     fee_currency varchar(10),
     fee_rate double
-)
+);
