@@ -5,6 +5,7 @@ services:
     build: ./collector/db
     ports:
       - "32000:3306"
+    command: --default-authentication-plugin=mysql_native_password
 #    environment:
 #      MYSQL_ROOT_PASSWORD: root
 #      MYSQL_DATABASE: taurus
@@ -22,6 +23,7 @@ services:
       - './collector:/collector'
     links:
       - db
+    entrypoint: ./wait-for-it.sh db:3306
 
   navigator:
     build: ./navigator
