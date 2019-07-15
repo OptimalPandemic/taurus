@@ -31,7 +31,7 @@ services:
       - collector
     tty: true
     ports:
-      - "8082:50051"
+      - "50051:50051"
     links:
       - collector
 

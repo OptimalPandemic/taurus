@@ -22,10 +22,17 @@ class Collector(CollectorServicer):
         database="taurus"
     )
 
-    channel_navigator = grpc.insecure_channel('localhost:8082')
-    navigator_stub = NavigatorStub(channel_navigator)
-    channel_web = grpc.insecure_channel('localhost:8080')
-    web_stub = WebStub(channel_web)
+    try:
+        channel_navigator = grpc.insecure_channel('navigator:50051')
+        navigator_stub = NavigatorStub(channel_navigator)
+        # channel_web = grpc.insecure_channel('web:50051')
+        # web_stub = WebStub(channel_web)
+    except grpc.RpcError as e:
+        if e.code() == grpc.StatusCode.UNAVAILABLE:
+            time.sleep(30)
+            channel_navigator = grpc.insecure_channel('navigator:50051')
+            navigator_stub = NavigatorStub(channel_navigator)
+
 
     async def manage_database(self):
         period = 1800  # 30 minutes
@@ -44,7 +51,7 @@ class Collector(CollectorServicer):
         query = """SELECT IFNULL(MAX(time), -1) FROM candlesticks"""
         cursor.execute(query)
         timestamp_highest = int(cursor.fetchone()[0])
-        to_inform = CandlestickSet()
+        to_inform = collector__pb2.CandlestickSet()
 
         if timestamp_highest == -1:
             # Database is empty
@@ -52,8 +59,15 @@ class Collector(CollectorServicer):
                 since = int(time.time() - data_age)
                 candlesticks = Collector.poll_candlesticks(exchange, symbols, since)
                 for c in candlesticks:
+                    c[0] = int(c[0])
                     self.write_candlestick(c[0]/1000, c[1], c[2], c[3], c[4], c[5], symbol, cursor)
-                    to_inform = to_inform.CandlestickSet.extend([Candlestick(c[0]/1000, c[1], c[2], c[3], c[4], c[5], symbol)])  # TODO fix
+                    to_inform.candlesticks.extend([Candlestick(timestamp=int(c[0] / 1000),
+                                                  open=c[1],
+                                                  high=c[2],
+                                                  low=c[3],
+                                                  close=c[4],
+                                                  volume=c[5],
+                                                  symbol=symbol)])
 
         elif timestamp_highest < int(time.time() - period):
             # Database is stale (older than 30m)
@@ -64,22 +78,37 @@ class Collector(CollectorServicer):
                 candlesticks = Collector.poll_candlesticks(exchange, symbols, int(since))
                 for c in candlesticks:
                     self.write_candlestick(c[0]/1000, c[1], c[2], c[3], c[4], c[5], symbol, cursor)
-                    to_inform = to_inform.CandlestickSet.extend([Candlestick(c[0]/1000, c[1], c[2], c[3], c[4], c[5], symbol)])
+                    to_inform.candlesticks.extend([Candlestick(timestamp=int(c[0] / 1000),
+                                                  open=c[1],
+                                                  high=c[2],
+                                                  low=c[3],
+                                                  close=c[4],
+                                                  volume=c[5],
+                                                  symbol=symbol)])
 
         # Give candlesticks to navigator and web  TODO do something smart here to prevent duplicate data in navigator
-        # response_navigator = self.navigator_stub.PutCandlesticks(candlesticks=to_inform)
-        # response_web = self.web_stub.InformCandlesticks(candlesticks=to_inform)
+        response_navigator = self.navigator_stub.PutCandlesticks(to_inform)
+        # response_web = self.web_stub.InformCandlesticks(to_inform)
+        print(response_navigator)
 
         # Do poll to database every 15 minutes and write to db and give to navigator
         while True:
             for symbol in symbols:
-                to_inform = CandlestickSet()
+                to_inform = collector__pb2.CandlestickSet()
                 candlesticks = Collector.poll_candlesticks(exchange, symbols, int(time.time()))
                 for c in candlesticks:
+                    c[0] = int(c[0])
                     self.write_candlestick(c[0]/1000, c[1], c[2], c[3], c[4], c[5], symbol, cursor)
-                    to_inform = to_inform.CandlestickSet.extend([Candlestick(c[0]/1000, c[1], c[2], c[3], c[4], c[5], symbol)])
-            response_navigator = self.navigator_stub.PutCandlesticks(candlesticks=to_inform)
-            response_web = self.web_stub.InformCandlesticks(candlesticks=to_inform)
+                    to_inform.candlesticks.extend([Candlestick(timestamp=int(c[0] / 1000),
+                                                  open=c[1],
+                                                  high=c[2],
+                                                  low=c[3],
+                                                  close=c[4],
+                                                  volume=c[5],
+                                                  symbol=symbol)])
+            print("Giving candlesticks to Navigator...")
+            response_navigator = self.navigator_stub.PutCandlesticks(to_inform)
+            # response_web = self.web_stub.InformCandlesticks(to_inform)
             await asyncio.sleep(period / 2)
 
     def GetCandlestick(self, request, context):
@@ -290,11 +319,16 @@ class Collector(CollectorServicer):
 
 async def main():
     c = Collector()
+    await c.manage_database()  # Start polling
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     add_CollectorServicer_to_server(c, server)
-    server.add_insecure_port('[::]:50051')
-    await server.start()  # Wait for gRPC messages
-    await c.manage_database()  # Start polling
+    server.add_insecure_port('0.0.0.0:50051')
+    server.start()  # Wait for gRPC messages
+    try:
+        while True:
+            time.sleep(86400)
+    except KeyboardInterrupt:
+        server.stop(0)
 
 if __name__ == "__main__":
     asyncio.get_event_loop().run_until_complete(main())

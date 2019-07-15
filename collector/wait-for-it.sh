@@ -156,6 +156,7 @@ fi
 if [[ $WAITFORIT_CHILD -gt 0 ]]; then
     wait_for
     WAITFORIT_RESULT=$?
+    python3 main.py
     exit $WAITFORIT_RESULT
 else
     if [[ $WAITFORIT_TIMEOUT -gt 0 ]]; then
@@ -174,5 +175,7 @@ if [[ $WAITFORIT_CLI != "" ]]; then
     fi
     exec "${WAITFORIT_CLI[@]}"
 else
+    python3 main.py
     exit $WAITFORIT_RESULT
 fi
+
