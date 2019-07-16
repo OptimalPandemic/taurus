@@ -16,6 +16,7 @@ services:
     build: ./collector
     depends_on:
       - db
+      - navigator
     tty: true
     ports:
       - "8081:50051"
@@ -23,17 +24,14 @@ services:
       - './collector:/collector'
     links:
       - db
+      - navigator
     entrypoint: ./wait-for-it.sh db:3306
 
   navigator:
     build: ./navigator
-    depends_on:
-      - collector
     tty: true
     ports:
       - "50051:50051"
-    links:
-      - collector
 
   web:
     build: ./web

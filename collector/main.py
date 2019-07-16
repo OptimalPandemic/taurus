@@ -29,6 +29,7 @@ class Collector(CollectorServicer):
         # web_stub = WebStub(channel_web)
     except grpc.RpcError as e:
         if e.code() == grpc.StatusCode.UNAVAILABLE:
+            # Wait for other services to start
             time.sleep(30)
             channel_navigator = grpc.insecure_channel('navigator:50051')
             navigator_stub = NavigatorStub(channel_navigator)
@@ -87,9 +88,10 @@ class Collector(CollectorServicer):
                                                   symbol=symbol)])
 
         # Give candlesticks to navigator and web  TODO do something smart here to prevent duplicate data in navigator
+        print(time.strftime('%I:%M%p'), ": Giving initial candlesticks to Navigator...")
         response_navigator = self.navigator_stub.PutCandlesticks(to_inform)
         # response_web = self.web_stub.InformCandlesticks(to_inform)
-        print(response_navigator)
+        print(time.strftime('%I:%M%p'), ':', response_navigator)
 
         # Do poll to database every 15 minutes and write to db and give to navigator
         while True:
@@ -106,10 +108,15 @@ class Collector(CollectorServicer):
                                                   close=c[4],
                                                   volume=c[5],
                                                   symbol=symbol)])
-            print("Giving candlesticks to Navigator...")
-            response_navigator = self.navigator_stub.PutCandlesticks(to_inform)
-            # response_web = self.web_stub.InformCandlesticks(to_inform)
-            await asyncio.sleep(period / 2)
+            if len(to_inform.candlesticks) != 0:
+                print(time.strftime('%I:%M%p'), ": Giving candlesticks to Navigator...")
+                response_navigator = self.navigator_stub.PutCandlesticks(to_inform)
+                # response_web = self.web_stub.InformCandlesticks(to_inform)
+                print(time.strftime('%I:%M%p'), response_navigator)
+            else:
+                print(time.strftime('%I:%M%p'), ": There are no new candlesticks.")
+            print(time.strftime('%I:%M%p'), ": Waiting 5 minutes....")
+            await asyncio.sleep(period / 6)
 
     def GetCandlestick(self, request, context):
         cursor = self.db.cursor(prepared=True)

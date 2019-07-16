@@ -19,7 +19,7 @@ class Navigator(NavigatorServicer):
 
         # convert CandlestickSet to 2D array
         temp = []
-        for c in request:
+        for c in request.candlesticks:
             temp.append([c.timestamp, c.open, c.high, c.low, c.close, c.volume, c.symbol])
         # convert array to tensor
         self.price_tensor = tf.convert_to_tensor(temp)
